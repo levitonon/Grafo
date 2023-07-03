@@ -201,64 +201,63 @@ public class Grafo<T> {
     }
 
 private boolean bfs(float[][] residuo, int inicio, int fim, int[] pai) {
-    int tamanho = vertices.size();
-    boolean[] visitado = new boolean[tamanho];
-    Arrays.fill(visitado, false);
+    int tamanho = vertices.size();              // Obtém o tamanho do grafo
+    boolean[] visitado = new boolean[tamanho]; // Cria um array de booleanos para controlar os vértices visitados
+    Arrays.fill(visitado, false);         // Inicializa o array como falso
 
-    Queue<Integer> fila = new LinkedList<>();
+    Queue<Integer> fila = new LinkedList<>(); // Cria uma fila para percorrer os vértices
     fila.add(inicio);
-    visitado[inicio] = true;
-    pai[inicio] = -1;
+    visitado[inicio] = true; 
+    pai[inicio] = -1; 
 
-    while (!fila.isEmpty()) {
-        int atual = fila.poll();
+    while (!fila.isEmpty()) { 
+        int atual = fila.poll(); // Remove o primeiro elemento da fila e o atribui à variável "atual"
 
-        ArrayList<Aresta<T>> destinos = vertices.get(atual).getDestinos();
-        for (Aresta<T> aresta : destinos) {
-            int proximo = vertices.indexOf(aresta.getDestino());
-            float capacidade = aresta.getPeso();
+        ArrayList<Aresta<T>> destinos = vertices.get(atual).getDestinos();     // Obtém a lista de destinos do vértice atual
+        for (Aresta<T> aresta : destinos) {                                   // Para cada aresta nos destinos
+            int proximo = vertices.indexOf(aresta.getDestino());             // Obtém o índice do próximo vértice de acordo com a aresta
+            float capacidade = aresta.getPeso();                            // Obtém a capacidade da aresta
 
-            if (!visitado[proximo] && residuo[atual][proximo] > 0) {
-                fila.add(proximo);
-                pai[proximo] = atual;
-                visitado[proximo] = true;
+            if (!visitado[proximo] && residuo[atual][proximo] > 0) { // Se o próximo vértice não foi visitado e a capacidade residual é maior que zero
+                fila.add(proximo);                                  // Adiciona o próximo vértice à fila
+                pai[proximo] = atual;                              // Define o vértice atual como pai do próximo vértice
+                visitado[proximo] = true;                         // Marca o próximo vértice como visitado
             }
         }
     }
 
     return visitado[fim];
 }
-
 public float fluxoMaximo(Vertice<T> verticeOrigem, Vertice<T> verticeDestino) {
-    int tamanho = vertices.size();
+    int tamanho = vertices.size(); // Obtém o tamanho do grafo (número de vértices)
 
     // Criar uma matriz de capacidades residuais
-    float[][] residuo = new float[tamanho][tamanho];
+    float[][] residuo = new float[tamanho][tamanho];                    // Cria uma matriz para armazenar as capacidades residuais entre os vértices
     for (int i = 0; i < tamanho; i++) {
-        ArrayList<Aresta<T>> destinos = vertices.get(i).getDestinos();
+        ArrayList<Aresta<T>> destinos = vertices.get(i).getDestinos();  // Obtém a lista de destinos do vértice atual
         for (Aresta<T> aresta : destinos) {
-            int j = vertices.indexOf(aresta.getDestino());
-            residuo[i][j] = aresta.getPeso();
+            int j = vertices.indexOf(aresta.getDestino());              // Obtém o índice do destino da aresta
+            residuo[i][j] = aresta.getPeso();                           // Armazena a capacidade da aresta na matriz de capacidades residuais
         }
     }
 
-    float fluxoMaximo = 0;
-    int[] pai = new int[tamanho]; // Array para armazenar o caminho de aumento
+    float fluxoMaximo = 0; 
+    int[] pai = new int[tamanho]; 
     while (bfs(residuo, vertices.indexOf(verticeOrigem), vertices.indexOf(verticeDestino), pai)) {
-        float caminhoAumento = Float.MAX_VALUE;
+        float caminhoAumento = Float.MAX_VALUE; // Define o caminho de aumento como o maior valor possível de float
 
-        // Encontrar a capacidade residual mínima ao longo do caminho de aumento
+        // Encontra a capacidade residual mínima ao longo do caminho
         for (Vertice<T> v = verticeDestino; v != verticeOrigem; v = vertices.get(pai[vertices.indexOf(v)])) {
             Vertice<T> u = vertices.get(pai[vertices.indexOf(v)]);
             float capacidadeResidual = residuo[vertices.indexOf(u)][vertices.indexOf(v)];
             caminhoAumento = Math.min(caminhoAumento, capacidadeResidual);
         }
 
-        // Atualizar o fluxo ao longo do caminho de aumento
+        // Atualiza o fluxo ao longo do caminho
         for (Vertice<T> v = verticeDestino; v != verticeOrigem; v = vertices.get(pai[vertices.indexOf(v)])) {
             Vertice<T> u = vertices.get(pai[vertices.indexOf(v)]);
-            residuo[vertices.indexOf(u)][vertices.indexOf(v)] -= caminhoAumento;
-            residuo[vertices.indexOf(v)][vertices.indexOf(u)] += caminhoAumento;
+            residuo[vertices.indexOf(u)][vertices.indexOf(v)] -= caminhoAumento; // Reduz a capacidade residual na direção do caminho
+            residuo[vertices.indexOf(v)][vertices.indexOf(u)] += caminhoAumento; // Aumenta o fluxo na direção contrária do caminho
         }
 
         fluxoMaximo += caminhoAumento;
