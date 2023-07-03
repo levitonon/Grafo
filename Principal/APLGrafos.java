@@ -134,7 +134,7 @@ public class APLGrafos {
             codigo2=lerTeclado.nextInt();
             vertice1 = grafo.obterVertice(new Cidade(codigo1,null));
             vertice2 = grafo.obterVertice(new Cidade(codigo2,null));
-            System.out.println("Fluxo maximo: "+grafo.calcularFluxoMaximo(vertice1, vertice2));
+            System.out.println("Fluxo maximo: "+grafo.fluxoMaximo(vertice1, vertice2));
        }
        else if(escolha == 6){
         sair = true;

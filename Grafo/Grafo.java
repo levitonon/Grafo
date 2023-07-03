@@ -6,8 +6,10 @@ package Grafo.Grafo;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.HashSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 
@@ -198,104 +200,71 @@ public class Grafo<T> {
         System.out.println("Distância total: " + distancias.get(vertices.indexOf(verticeDestino)));
     }
 
-// Método para calcular o fluxo máximo usando o algoritmo de Ford-Fulkerson
-public int calcularFluxoMaximo(Vertice<T> origem, Vertice<T> destino) {
-    int maxFluxo = 0;
-    boolean existecaminhoalternante = true;
-    boolean achado = false;
-    HashMap<Vertice<T>, Aresta<T>> pai = new HashMap<Vertice<T>, Aresta<T>>();
-    HashSet<Vertice<T>> visitados = new HashSet<Vertice<T>>();
+private boolean bfs(float[][] residuo, int inicio, int fim, int[] pai) {
+    int tamanho = vertices.size();
+    boolean[] visitado = new boolean[tamanho];
+    Arrays.fill(visitado, false);
 
-    while (existecaminhoalternante) {
-        LinkedList<Vertice<T>> fila = new LinkedList<Vertice<T>>();
+    Queue<Integer> fila = new LinkedList<>();
+    fila.add(inicio);
+    visitado[inicio] = true;
+    pai[inicio] = -1;
 
-        fila.add(origem);
-        visitados.add(origem);
-        pai.put(origem, null);
+    while (!fila.isEmpty()) {
+        int atual = fila.poll();
 
-        while (!fila.isEmpty()) {
-            Vertice<T> verticeAtual = fila.poll();
+        ArrayList<Aresta<T>> destinos = vertices.get(atual).getDestinos();
+        for (Aresta<T> aresta : destinos) {
+            int proximo = vertices.indexOf(aresta.getDestino());
+            float capacidade = aresta.getPeso();
 
-            if (comparador.compare(verticeAtual.getValor(), destino.getValor()) == 0) {
-                achado = true;
-                break;
-            }
-
-            ArrayList<Aresta<T>> arestas = verticeAtual.getDestinos();
-
-            for (Aresta<T> aresta : arestas) {
-                Vertice<T> verticeDestino = aresta.getDestino();
-
-                if (!visitados.contains(verticeDestino) && aresta.getPeso() > 0) {
-                    fila.add(verticeDestino);
-                    visitados.add(verticeDestino);
-                    pai.put(verticeDestino, aresta);
-                }
-            }
-
-            // Verifica se o destino foi encontrado antes de prosseguir
-            if (achado) {
-                break;
+            if (!visitado[proximo] && residuo[atual][proximo] > 0) {
+                fila.add(proximo);
+                pai[proximo] = atual;
+                visitado[proximo] = true;
             }
         }
-
-        if (!visitados.contains(destino)) {
-            existecaminhoalternante = false;
-            break;
-        }
-
-        int fluxoCaminho = Integer.MAX_VALUE;
-        Vertice<T> vertice = destino;
-        Vertice<T> verticeAuxiliar = vertice;
-
-        while (verticeAuxiliar != origem) {
-            Aresta<T> aresta = pai.get(verticeAuxiliar);
-            fluxoCaminho = Math.min(fluxoCaminho, (int) aresta.getPeso());
-            Vertice<T> verticeOrigem = getVerticeOrigemArestaInversa(aresta, verticeAuxiliar);
-            verticeAuxiliar = verticeOrigem;
-        }
-
-        vertice = destino;
-
-        while (vertice != origem) {
-            Aresta<T> aresta = pai.get(vertice);
-            aresta.setPeso(aresta.getPeso() - fluxoCaminho);
-            Aresta<T> arestaInversa = getArestaInversa(aresta, vertice);
-            arestaInversa.setPeso(arestaInversa.getPeso() + fluxoCaminho);
-            vertice = getVerticeOrigemArestaInversa(arestaInversa, vertice);
-        }
-
-        if (achado) {
-            maxFluxo += fluxoCaminho;
-        }
-
-        visitados.clear();
-        pai.clear();
     }
 
-    return maxFluxo;
+    return visitado[fim];
 }
 
-private Vertice<T> getVerticeOrigemArestaInversa(Aresta<T> aresta, HashMap<Vertice<T>, Aresta<T>> pai) {
-    for (Map.Entry<Vertice<T>, Aresta<T>> entry : pai.entrySet()) {
-        if (entry.getValue() == aresta) {
-            return entry.getKey();
+public float fluxoMaximo(Vertice<T> verticeOrigem, Vertice<T> verticeDestino) {
+    int tamanho = vertices.size();
+
+    // Criar uma matriz de capacidades residuais
+    float[][] residuo = new float[tamanho][tamanho];
+    for (int i = 0; i < tamanho; i++) {
+        ArrayList<Aresta<T>> destinos = vertices.get(i).getDestinos();
+        for (Aresta<T> aresta : destinos) {
+            int j = vertices.indexOf(aresta.getDestino());
+            residuo[i][j] = aresta.getPeso();
         }
     }
-    return null;
-}
 
-// Método auxiliar para obter a aresta inversa de uma aresta dada um vértice destino
-private Aresta<T> getArestaInversa(Aresta<T> aresta, Vertice<T> verticeDestino) {
-    Vertice<T> verticeOrigem = verticeDestino; // O vértice de origem é o destino da aresta original
-    ArrayList<Aresta<T>> arestasOrigem = verticeOrigem.getDestinos();
-    for (Aresta<T> arestaOrigem : arestasOrigem) {
-        if (comparador.compare(arestaOrigem.getDestino().getValor(), verticeOrigem.getValor()) == 0) {
-            return arestaOrigem;
+    float fluxoMaximo = 0;
+    int[] pai = new int[tamanho]; // Array para armazenar o caminho de aumento
+    while (bfs(residuo, vertices.indexOf(verticeOrigem), vertices.indexOf(verticeDestino), pai)) {
+        float caminhoAumento = Float.MAX_VALUE;
+
+        // Encontrar a capacidade residual mínima ao longo do caminho de aumento
+        for (Vertice<T> v = verticeDestino; v != verticeOrigem; v = vertices.get(pai[vertices.indexOf(v)])) {
+            Vertice<T> u = vertices.get(pai[vertices.indexOf(v)]);
+            float capacidadeResidual = residuo[vertices.indexOf(u)][vertices.indexOf(v)];
+            caminhoAumento = Math.min(caminhoAumento, capacidadeResidual);
         }
-    }
-    return null;
-}
 
+        // Atualizar o fluxo ao longo do caminho de aumento
+        for (Vertice<T> v = verticeDestino; v != verticeOrigem; v = vertices.get(pai[vertices.indexOf(v)])) {
+            Vertice<T> u = vertices.get(pai[vertices.indexOf(v)]);
+            residuo[vertices.indexOf(u)][vertices.indexOf(v)] -= caminhoAumento;
+            residuo[vertices.indexOf(v)][vertices.indexOf(u)] += caminhoAumento;
+        }
+
+        fluxoMaximo += caminhoAumento;
+    }
+
+    return fluxoMaximo;
+}
 
 }
